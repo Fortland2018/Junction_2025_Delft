@@ -17,7 +17,7 @@ class WordFlagger:
         if not os.path.exists(bad_words_filepath):
             raise FileNotFoundError(f"The file '{bad_words_filepath}' does not exist.")
 
-        with open(bad_words_filepath, 'r') as file:
+        with open(bad_words_filepath, 'r', encoding='utf-8') as file:
             self.bad_words = {line.strip().lower() for line in file if line.strip()}
 
     def flag_words(self, text: str) -> List[Dict[str, object]]:
