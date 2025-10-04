@@ -1,0 +1,12 @@
+# Core ASR + audio IO
+faster-whisper==1.0.2
+ffmpeg-python==0.2.0
+
+# Simple HTTP API for your Flutter app to call
+Flask==3.0.3
+Werkzeug==3.0.3
+
+# Utilities used in the example scripts
+text-unidecode==1.3
+regex==2024.11.6
+faster_whisper
