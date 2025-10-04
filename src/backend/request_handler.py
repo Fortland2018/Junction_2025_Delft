@@ -1,65 +1,40 @@
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.responses import JSONResponse
-import requests
-import os
-from tempfile import NamedTemporaryFile
+
+# Import the transcribe and bad word flagger modules
+from transcriber.transcribe import transcribe_bytes
+from src.backend.bad_word_flagger import WordFlagger
 
 app = FastAPI()
 
-# --- CONFIGURATION ---
-Artur_TRANSCRIPTION_API_URL = "https://api.example.com/transcribe"
-Ata_TIMESTAMP_API_URL = "https://api.example.com/get_timestamps"
-API_KEY = os.getenv("API_KEY")
 
-
-@app.post("/process-audio/")
-async def process_audio(file: UploadFile = File(...)):
+@app.post("/process-media/")
+async def process_media(file: UploadFile = File(...)):
     """
-    1. Accepts an audio file upload from the frontend
-    2. Sends it to a transcription API to generate text
-    3. Sends the text to another API to get timestamps
-    4. Returns timestamps to the frontend
+    1. Accepts an audio/video file upload from the frontend
+    2. Transcribes it to text using the transcribe module
+    3. Flags bad words using bad_word_flagger
+    4. Returns JSON with transcription and flagged words
     """
     try:
-        # --- Step 1: Save uploaded audio temporarily ---
-        with NamedTemporaryFile(delete=False, suffix=".wav") as temp_audio:
-            temp_audio.write(await file.read())
-            temp_audio_path = temp_audio.name
+        # Step 1: Read uploaded file bytes
+        file_bytes = await file.read()
 
-        # --- Step 2: Send audio to transcription API ---
-        with open(temp_audio_path, "rb") as audio_data:
-            transcription_response = requests.post(
-                TRANSCRIPTION_API_URL,
-                headers={"Authorization": f"Bearer {API_KEY}"},
-                files={"file": audio_data},
-            )
+        # Step 2: Transcribe using transcribe_bytes
+        transcribe_result = transcribe_bytes(file_bytes, filename_hint=file.filename)
+        # Get the full transcription text by joining all sentences
+        sentences = transcribe_result.get("sentences", [])
+        transcription_text = " ".join([s["text"] for s in sentences])
 
-        if transcription_response.status_code != 200:
-            raise HTTPException(status_code=500, detail="Transcription API failed")
+        # Step 3: Flag bad words
+        flagger = WordFlagger()
+        flagged_words = flagger.flag_words(transcription_text)
 
-        transcription_text = transcription_response.json().get("text")
-        if not transcription_text:
-            raise HTTPException(status_code=500, detail="No transcription text returned")
-
-        # --- Step 3: Get timestamps from another API ---
-        timestamp_response = requests.post(
-            TIMESTAMP_API_URL,
-            headers={"Authorization": f"Bearer {API_KEY}", "Content-Type": "application/json"},
-            json={"text": transcription_text},
-        )
-
-        if timestamp_response.status_code != 200:
-            raise HTTPException(status_code=500, detail="Timestamp API failed")
-
-        timestamps = timestamp_response.json().get("timestamps", [])
-
-        # --- Step 4: Return timestamps to frontend ---
-        return JSONResponse(content={"timestamps": timestamps})
+        # Step 4: Return JSON response
+        return JSONResponse(content={
+            "transcription": sentences,
+            "flagged_words": flagged_words
+        })
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
-    finally:
-        # --- Cleanup temporary file ---
-        if os.path.exists(temp_audio_path):
-            os.remove(temp_audio_path)
