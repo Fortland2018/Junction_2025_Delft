@@ -3,6 +3,8 @@ import 'package:file_picker/file_picker.dart';
 import 'services/audio_api_service.dart';
 import 'widgets/waveform_widget.dart';
 import 'widgets/action_buttons_widget.dart';
+import 'widgets/timestamp_list_widget.dart';
+import 'models/timestamp_entry.dart';
 
 void main() {
   runApp(const MyApp());
@@ -64,11 +66,45 @@ class _MyHomePageState extends State<MyHomePage> {
   WaveformData? _waveformData;
   bool _isProcessing = false;
   bool _serverOnline = false;
+  List<TimestampEntry> _timestamps = []; // Lista timestampów
+  String? _selectedCategory; // Wybrana kategoria do filtrowania
 
   @override
   void initState() {
     super.initState();
     _checkServer();
+    _loadSampleData(); // Załaduj przykładowe dane
+  }
+
+  // Załaduj przykładowe dane timestampów
+  void _loadSampleData() {
+    setState(() {
+      _timestamps = getSampleTimestamps();
+    });
+  }
+
+  // Synchronizuj timestampy z markerami na waveform
+  void _syncTimestampsToMarkers() {
+    if (_waveformData == null) return;
+
+    // Filtruj timestampy jeśli wybrana kategoria
+    final timestampsToShow = _selectedCategory == null
+        ? _timestamps
+        : _timestamps.where((t) => t.category == _selectedCategory).toList();
+
+    final markers = timestampsToShow.map((entry) {
+      return TimeMarker(
+        timeInSeconds: entry.timeInSeconds,
+        label: entry.formattedTime,
+        color: entry.color,
+      );
+    }).toList();
+
+    setState(() {
+      _waveformData = _waveformData!.copyWith(markers: markers);
+    });
+
+    print('📍 Zsynchronizowano ${markers.length} markerów z timestampami${_selectedCategory != null ? ' (filtr: $_selectedCategory)' : ''}');
   }
 
   Future<void> _checkServer() async {
@@ -159,9 +195,24 @@ class _MyHomePageState extends State<MyHomePage> {
   void _handleActionButton(String action) {
     print('🔘 Kliknięto przycisk: $action');
 
+    setState(() {
+      if (action == 'ALL') {
+        // Wyczyść filtr - pokaż wszystkie kategorie
+        _selectedCategory = null;
+        print('🗑️ Wyczyszczono filtr - pokazuję wszystkie kategorie');
+      } else {
+        // Ustaw filtr na wybraną kategorię
+        _selectedCategory = action;
+        print('🎯 Filtrowanie według kategorii: $action');
+      }
+    });
+
+    // Synchronizuj markery na waveform z filtrowaną listą
+    _syncTimestampsToMarkers();
+
     switch (action) {
       case 'export':
-        print('📤 Export data...');
+        print('📤 Export.');
         // TODO: Implementacja exportu
         break;
       case 'save':
@@ -237,6 +288,8 @@ class _MyHomePageState extends State<MyHomePage> {
 
           if (waveform != null) {
             print('✅ Sukces! Waveform otrzymany');
+            // Synchronizuj timestampy z markerami na waveform
+            _syncTimestampsToMarkers();
           } else {
             print('❌ Błąd podczas przetwarzania');
           }
@@ -560,94 +613,6 @@ class _MyHomePageState extends State<MyHomePage> {
                               ),
                             ),
                           ],
-                          // NOWE: Przyciski do zarządzania markerami
-                          if (_waveformData != null) ...[
-                            const SizedBox(height: 16),
-                            const Divider(),
-                            const SizedBox(height: 12),
-                            Text(
-                              'Time Markers',
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.grey[800],
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                            ElevatedButton.icon(
-                              onPressed: _addExampleMarkers,
-                              icon: Icon(Icons.add_location, size: 18),
-                              label: Text(
-                                'Add Markers',
-                                style: TextStyle(fontSize: 12),
-                              ),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Color(0xFFFFD700),
-                                foregroundColor: Colors.black87,
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical: 12,
-                                ),
-                                minimumSize: Size(double.infinity, 40),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            OutlinedButton.icon(
-                              onPressed: _clearMarkers,
-                              icon: Icon(Icons.clear_all, size: 18),
-                              label: Text(
-                                'Clear All',
-                                style: TextStyle(fontSize: 12),
-                              ),
-                              style: OutlinedButton.styleFrom(
-                                foregroundColor: Colors.red[400],
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical: 12,
-                                ),
-                                minimumSize: Size(double.infinity, 40),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                side: BorderSide(color: Colors.red.shade300),
-                              ),
-                            ),
-                            if (_waveformData!.markers.isNotEmpty) ...[
-                              const SizedBox(height: 8),
-                              Container(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 8,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Color(0xFFFFD700).withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(
-                                      Icons.location_on,
-                                      size: 16,
-                                      color: Color(0xFFFFD700),
-                                    ),
-                                    SizedBox(width: 6),
-                                    Text(
-                                      '${_waveformData!.markers.length} markers',
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w600,
-                                        color: Colors.grey[800],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ],
                         ],
                       ),
                     ),
@@ -827,6 +792,30 @@ class _MyHomePageState extends State<MyHomePage> {
                                 // NOWY WIDGET: Przyciski akcji
                                 ActionButtonsWidget(
                                   onButtonPressed: _handleActionButton,
+                                ),
+                              ],
+                              // Lista timestampów - pokaż tylko gdy waveform jest załadowany
+                              if (_timestamps.isNotEmpty && _waveformData != null) ...[
+                                const SizedBox(height: 20),
+                                SizedBox(
+                                  height: 400, // Stała wysokość dla listy
+                                  child: TimestampListWidget(
+                                    timestamps: _selectedCategory == null
+                                        ? _timestamps // Pokaż wszystkie
+                                        : _timestamps
+                                              .where(
+                                                (t) =>
+                                                    t.category ==
+                                                    _selectedCategory,
+                                              )
+                                              .toList(), // Filtruj według kategorii
+                                    onTimestampTap: (entry) {
+                                      print(
+                                        '🎯 Kliknięto timestamp: ${entry.formattedTime} - ${entry.category}',
+                                      );
+                                      // TODO: Można tutaj dodać przewijanie do danego miejsca na waveform
+                                    },
+                                  ),
                                 ),
                               ],
                               const SizedBox(
