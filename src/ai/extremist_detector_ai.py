@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Get the API key from environment variables
-api_key = os.getenv('API_KEY')
+api_key = os.getenv('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')
 
 
 

@@ -601,7 +601,13 @@ Return JSON:
             "raw_features": all_features,
             "group_mapping": group_mapping  # Include mapping for transparency
         }
-    
+
+
+    async def analyze_async(self, text: str):
+            """Async entrypoint for ASGI servers (FastAPI)."""
+            return await self._analyze_async(text)
+
+
     # OPTIMIZED ASYNC VERSION FOR BATCH PROCESSING
     async def _analyze_async(self, text, text_id=None):
         """Optimized async version with maximum parallelization"""
