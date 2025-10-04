@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
+import 'services/audio_api_service.dart';
+import 'widgets/waveform_widget.dart';
 
 void main() {
   runApp(const MyApp());
@@ -56,46 +58,186 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
   String? _fileName;
   PlatformFile? _selectedFile;
+  WaveformData? _waveformData;
+  bool _isProcessing = false;
+  bool _serverOnline = false;
 
-  void _incrementCounter() {
+  @override
+  void initState() {
+    super.initState();
+    _checkServer();
+  }
+
+  Future<void> _checkServer() async {
+    final status = await AudioApiService.checkServerStatus();
     setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
+      _serverOnline = status;
     });
+    if (!status) {
+      print('⚠️ Backend nie działa! Uruchom: python backend/main.py');
+    }
+  }
+
+  // NOWA FUNKCJA: Dodaj marker w określonym czasie (minuty:sekundy)
+  void _addTimeMarker(int minutes, int seconds) {
+    if (_waveformData == null) return;
+
+    final timeInSeconds = (minutes * 60.0) + seconds.toDouble();
+
+    // Sprawdź czy czas mieści się w długości audio
+    if (timeInSeconds > _waveformData!.duration) {
+      print('⚠️ Czas $minutes:$seconds przekracza długość audio!');
+      return;
+    }
+
+    setState(() {
+      _waveformData = _waveformData!.copyWith(
+        markers: [
+          ..._waveformData!.markers,
+          TimeMarker(
+            timeInSeconds: timeInSeconds,
+            label:
+                '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}',
+            color: Color(0xFFFFD700), // Żółty
+          ),
+        ],
+      );
+    });
+
+    print('📍 Dodano marker: $minutes:$seconds (${timeInSeconds}s)');
+  }
+
+  // NOWA FUNKCJA: Dodaj przykładowe markery do testowania
+  void _addExampleMarkers() {
+    if (_waveformData == null) return;
+
+    // Przykładowe markery co 15 sekund
+    final duration = _waveformData!.duration;
+    final markerInterval = 15.0; // co 15 sekund
+
+    List<TimeMarker> newMarkers = [];
+    for (
+      double time = markerInterval;
+      time < duration;
+      time += markerInterval
+    ) {
+      final minutes = (time / 60).floor();
+      final seconds = (time % 60).floor();
+
+      newMarkers.add(
+        TimeMarker(
+          timeInSeconds: time,
+          label:
+              '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}',
+          color: Color(0xFFFFD700),
+        ),
+      );
+    }
+
+    setState(() {
+      _waveformData = _waveformData!.copyWith(markers: newMarkers);
+    });
+
+    print('📍 Dodano ${newMarkers.length} markerów');
+  }
+
+  // NOWA FUNKCJA: Wyczyść wszystkie markery
+  void _clearMarkers() {
+    if (_waveformData == null) return;
+
+    setState(() {
+      _waveformData = _waveformData!.copyWith(markers: []);
+    });
+
+    print('🗑️ Wyczyszczono wszystkie markery');
   }
 
   Future<void> _pickFile() async {
+    if (!_serverOnline) {
+      print('❌ Backend nie działa!');
+      return;
+    }
+
     try {
       FilePickerResult? result = await FilePicker.platform.pickFiles(
-        type: FileType.any,
+        type: FileType.custom,
+        allowedExtensions: [
+          'mp3',
+          'wav',
+          'mp4',
+          'm4a',
+          'aac',
+          'mov',
+          'avi',
+          'flac',
+        ],
         allowMultiple: false,
-        withData: true, // Ważne dla web - ładuje dane pliku
+        withData: true,
       );
 
       if (result != null) {
         setState(() {
           _selectedFile = result.files.first;
           _fileName = result.files.first.name;
+          _isProcessing = true;
+          _waveformData = null;
         });
 
-        // Wyświetl informacje o pliku
-        print('Wybrany plik: ${_fileName}');
-        print('Rozmiar: ${_selectedFile!.size} bajtów');
-        print('Rozszerzenie: ${_selectedFile!.extension}');
+        print('📁 Wybrany plik: ${_fileName}');
+        print(
+          '📦 Rozmiar: ${(_selectedFile!.size / 1024 / 1024).toStringAsFixed(2)} MB',
+        );
 
-        // Dane pliku są dostępne jako bajty:
-        // _selectedFile!.bytes
+        // Wyślij do Python backend
+        if (_selectedFile!.bytes != null) {
+          final waveform = await AudioApiService.extractWaveform(
+            _selectedFile!.name,
+            _selectedFile!.bytes!,
+          );
+
+          setState(() {
+            _waveformData = waveform;
+            _isProcessing = false;
+          });
+
+          if (waveform != null) {
+            print('✅ Sukces! Waveform otrzymany');
+          } else {
+            print('❌ Błąd podczas przetwarzania');
+          }
+        }
       }
     } catch (e) {
-      print('Błąd podczas wyboru pliku: $e');
+      print('❌ Błąd: $e');
+      setState(() {
+        _isProcessing = false;
+      });
     }
+  }
+
+  Widget _buildInfoChip(IconData icon, String text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade100,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: Colors.grey.shade600),
+          const SizedBox(width: 6),
+          Text(
+            text,
+            style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
+            overflow: TextOverflow.ellipsis,
+            maxLines: 1,
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -120,7 +262,7 @@ class _MyHomePageState extends State<MyHomePage> {
             // Własny header z grafiką
             Container(
               width: double.infinity,
-              height: 100, // Wysokość paska
+              height: 116, // Wysokość paska
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topLeft,
@@ -197,6 +339,46 @@ class _MyHomePageState extends State<MyHomePage> {
                                 fontWeight: FontWeight.w300,
                               ),
                             ),
+                            if (_serverOnline)
+                              Container(
+                                margin: const EdgeInsets.only(top: 4),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.green.withOpacity(0.3),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  '● Server Online',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              )
+                            else
+                              Container(
+                                margin: const EdgeInsets.only(top: 4),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.red.withOpacity(0.3),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  '● Server Offline',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
                           ],
                         ),
                         // Menu/Ikony
@@ -230,122 +412,217 @@ class _MyHomePageState extends State<MyHomePage> {
               child: Padding(
                 padding: const EdgeInsets.all(24.0),
                 child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Lewa karta
-                    Expanded(
-                      child: Container(
-                        margin: const EdgeInsets.only(right: 12.0),
-                        padding: const EdgeInsets.all(32.0),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.9),
-                          borderRadius: BorderRadius.circular(20),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.1),
-                              blurRadius: 20,
-                              offset: const Offset(0, 8),
-                            ),
-                          ],
-                          border: Border.all(
-                            color: Colors.white.withOpacity(0.2),
-                            width: 1,
+                    // Lewy górny róg - Upload box (stała szerokość)
+                    Container(
+                      width: 280,
+                      padding: const EdgeInsets.all(20.0),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.9),
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.1),
+                            blurRadius: 20,
+                            offset: const Offset(0, 8),
                           ),
+                        ],
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.2),
+                          width: 1,
                         ),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            // Ikonka do załadowania pliku
-                            InkWell(
-                              onTap: _pickFile,
-                              borderRadius: BorderRadius.circular(20),
-                              child: Container(
-                                width: 120,
-                                height: 120,
-                                decoration: BoxDecoration(
-                                  gradient: const LinearGradient(
-                                    colors: [
-                                      Color(0xFF667EEA),
-                                      Color(0xFF764BA2),
-                                    ],
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          // Ikonka do załadowania pliku
+                          InkWell(
+                            onTap: _isProcessing ? null : _pickFile,
+                            borderRadius: BorderRadius.circular(15),
+                            child: Container(
+                              width: 100,
+                              height: 100,
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: _isProcessing
+                                      ? [Colors.grey, Colors.grey.shade400]
+                                      : [Color(0xFF667EEA), Color(0xFF764BA2)],
+                                ),
+                                borderRadius: BorderRadius.circular(15),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: const Color(
+                                      0xFF667EEA,
+                                    ).withOpacity(0.3),
+                                    blurRadius: 12,
+                                    offset: const Offset(0, 6),
                                   ),
-                                  borderRadius: BorderRadius.circular(20),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: const Color(
-                                        0xFF667EEA,
-                                      ).withOpacity(0.3),
-                                      blurRadius: 12,
-                                      offset: const Offset(0, 6),
+                                ],
+                              ),
+                              child: _isProcessing
+                                  ? Center(
+                                      child: CircularProgressIndicator(
+                                        color: Colors.white,
+                                        strokeWidth: 3,
+                                      ),
+                                    )
+                                  : Icon(
+                                      Icons.upload_file,
+                                      color: Colors.white,
+                                      size: 50,
                                     ),
-                                  ],
-                                ),
-                                child: const Icon(
-                                  Icons.upload_file,
-                                  color: Colors.white,
-                                  size: 50,
-                                ),
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+                          Text(
+                            'Upload File',
+                            style: TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                              color: const Color(0xFF2D3748),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            _isProcessing ? 'Processing...' : 'Click to upload',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey[600],
+                              height: 1.3,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF667EEA).withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Text(
+                              _fileName ?? 'No file',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                                color: const Color(0xFF667EEA),
+                              ),
+                              textAlign: TextAlign.center,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          if (_selectedFile != null) ...[
+                            const SizedBox(height: 8),
+                            Text(
+                              'Size: ${(_selectedFile!.size / 1024 / 1024).toStringAsFixed(2)} MB',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: Colors.grey[600],
                               ),
                             ),
-                            const SizedBox(height: 24),
-                            const Text(
-                              'Upload File',
+                          ],
+                          // NOWE: Przyciski do zarządzania markerami
+                          if (_waveformData != null) ...[
+                            const SizedBox(height: 16),
+                            const Divider(),
+                            const SizedBox(height: 12),
+                            Text(
+                              'Time Markers',
                               style: TextStyle(
-                                fontSize: 28,
+                                fontSize: 14,
                                 fontWeight: FontWeight.bold,
-                                color: Color(0xFF2D3748),
+                                color: Colors.grey[800],
                               ),
                             ),
                             const SizedBox(height: 12),
-                            Text(
-                              'Click to select and upload your file',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: Colors.grey[600],
-                                height: 1.5,
+                            ElevatedButton.icon(
+                              onPressed: _addExampleMarkers,
+                              icon: Icon(Icons.add_location, size: 18),
+                              label: Text(
+                                'Add Markers',
+                                style: TextStyle(fontSize: 12),
                               ),
-                            ),
-                            const SizedBox(height: 24),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 20,
-                                vertical: 10,
-                              ),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF667EEA).withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Text(
-                                _fileName ?? 'Drag & Drop or Click',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w500,
-                                  color: const Color(0xFF667EEA),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Color(0xFFFFD700),
+                                foregroundColor: Colors.black87,
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 12,
                                 ),
-                                textAlign: TextAlign.center,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
+                                minimumSize: Size(double.infinity, 40),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
                               ),
                             ),
-                            if (_selectedFile != null) ...[
-                              const SizedBox(height: 12),
-                              Text(
-                                'Size: ${(_selectedFile!.size / 1024).toStringAsFixed(2)} KB',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey[600],
+                            const SizedBox(height: 8),
+                            OutlinedButton.icon(
+                              onPressed: _clearMarkers,
+                              icon: Icon(Icons.clear_all, size: 18),
+                              label: Text(
+                                'Clear All',
+                                style: TextStyle(fontSize: 12),
+                              ),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: Colors.red[400],
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 12,
+                                ),
+                                minimumSize: Size(double.infinity, 40),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                side: BorderSide(color: Colors.red.shade300),
+                              ),
+                            ),
+                            if (_waveformData!.markers.isNotEmpty) ...[
+                              const SizedBox(height: 8),
+                              Container(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 8,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Color(0xFFFFD700).withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.location_on,
+                                      size: 16,
+                                      color: Color(0xFFFFD700),
+                                    ),
+                                    SizedBox(width: 6),
+                                    Text(
+                                      '${_waveformData!.markers.length} markers',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.grey[800],
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
                             ],
                           ],
-                        ),
+                        ],
                       ),
                     ),
-                    // Prawa karta
+                    const SizedBox(width: 24),
+                    // Prawa strona - Waveform widget
                     Expanded(
                       child: Container(
-                        margin: const EdgeInsets.only(left: 12.0),
-                        padding: const EdgeInsets.all(32.0),
+                        padding: const EdgeInsets.all(24.0),
                         decoration: BoxDecoration(
                           color: Colors.white.withOpacity(0.9),
                           borderRadius: BorderRadius.circular(20),
@@ -362,65 +639,151 @@ class _MyHomePageState extends State<MyHomePage> {
                           ),
                         ),
                         child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Container(
-                              width: 80,
-                              height: 80,
-                              decoration: BoxDecoration(
-                                gradient: const LinearGradient(
-                                  colors: [
-                                    Color(0xFFFF6B6B),
-                                    Color(0xFFFFE66D),
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.graphic_eq,
+                                  color: Color(0xFF667EEA),
+                                  size: 28,
+                                ),
+                                const SizedBox(width: 12),
+                                Text(
+                                  'Audio Waveform',
+                                  style: TextStyle(
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFF2D3748),
+                                  ),
+                                ),
+                                Spacer(),
+                                if (_waveformData != null) ...[
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 6,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Color(0xFF667EEA).withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Text(
+                                      '${_waveformData!.duration.toStringAsFixed(1)}s',
+                                      style: TextStyle(
+                                        color: Color(0xFF667EEA),
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                  if (_waveformData!.markers.isNotEmpty) ...[
+                                    const SizedBox(width: 8),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 12,
+                                        vertical: 6,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: Color(
+                                          0xFFFFD700,
+                                        ).withOpacity(0.2),
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(
+                                            Icons.location_on,
+                                            size: 14,
+                                            color: Color(0xFFFFD700),
+                                          ),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            '${_waveformData!.markers.length}',
+                                            style: TextStyle(
+                                              color: Colors.black87,
+                                              fontWeight: FontWeight.w600,
+                                              fontSize: 13,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
                                   ],
+                                ],
+                              ],
+                            ),
+                            const SizedBox(height: 20),
+                            // Waveform display
+                            Container(
+                              height: 120,
+                              decoration: BoxDecoration(
+                                color: Colors.grey.shade50,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: Colors.grey.shade200,
+                                  width: 1,
                                 ),
-                                borderRadius: BorderRadius.circular(40),
                               ),
-                              child: const Icon(
-                                Icons.rocket_launch_outlined,
-                                color: Colors.white,
-                                size: 40,
-                              ),
+                              child: _waveformData != null
+                                  ? ClipRRect(
+                                      borderRadius: BorderRadius.circular(12),
+                                      child: Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 16.0,
+                                          vertical: 8.0,
+                                        ),
+                                        child: WaveformWidget(
+                                          waveformData: _waveformData!,
+                                          waveColor: Color(0xFF667EEA),
+                                          height: 104,
+                                        ),
+                                      ),
+                                    )
+                                  : Center(
+                                      child: Column(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          Icon(
+                                            Icons.audio_file_outlined,
+                                            size: 40,
+                                            color: Colors.grey.shade400,
+                                          ),
+                                          const SizedBox(height: 8),
+                                          Text(
+                                            'Upload an audio/video file to see the waveform',
+                                            style: TextStyle(
+                                              color: Colors.grey[600],
+                                              fontSize: 14,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
                             ),
-                            const SizedBox(height: 24),
-                            const Text(
-                              'Dashboard',
-                              style: TextStyle(
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF2D3748),
+                            if (_waveformData != null) ...[
+                              const SizedBox(height: 16),
+                              Wrap(
+                                spacing: 12,
+                                runSpacing: 8,
+                                children: [
+                                  _buildInfoChip(
+                                    Icons.insert_drive_file,
+                                    _waveformData!.fileName,
+                                  ),
+                                  _buildInfoChip(
+                                    Icons.storage,
+                                    '${(_waveformData!.fileSize / 1024 / 1024).toStringAsFixed(2)} MB',
+                                  ),
+                                  _buildInfoChip(
+                                    Icons.show_chart,
+                                    '${_waveformData!.samples} samples',
+                                  ),
+                                ],
                               ),
-                            ),
-                            const SizedBox(height: 12),
-                            Text(
-                              'Zarządzaj projektami i monitoruj postępy w czasie rzeczywistym',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: Colors.grey[600],
-                                height: 1.5,
-                              ),
-                            ),
-                            const SizedBox(height: 24),
-                            ElevatedButton(
-                              onPressed: _incrementCounter,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFFFF6B6B),
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 24,
-                                  vertical: 12,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                elevation: 0,
-                              ),
-                              child: const Text(
-                                'Zwiększ licznik',
-                                style: TextStyle(fontWeight: FontWeight.w600),
-                              ),
-                            ),
+                            ],
                           ],
                         ),
                       ),
