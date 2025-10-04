@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'services/audio_api_service.dart';
 import 'widgets/waveform_widget.dart';
+import 'widgets/action_buttons_widget.dart';
 
 void main() {
   runApp(const MyApp());
@@ -152,6 +153,38 @@ class _MyHomePageState extends State<MyHomePage> {
     });
 
     print('🗑️ Wyczyszczono wszystkie markery');
+  }
+
+  // NOWA FUNKCJA: Obsługa przycisków akcji
+  void _handleActionButton(String action) {
+    print('🔘 Kliknięto przycisk: $action');
+
+    switch (action) {
+      case 'export':
+        print('📤 Export data...');
+        // TODO: Implementacja exportu
+        break;
+      case 'save':
+        print('💾 Save project...');
+        // TODO: Implementacja zapisu
+        break;
+      case 'share':
+        print('🔗 Share...');
+        // TODO: Implementacja udostępniania
+        break;
+      case 'settings':
+        print('⚙️ Settings...');
+        // TODO: Implementacja ustawień
+        break;
+      case 'analyze':
+        print('📊 Analyze...');
+        // TODO: Implementacja analizy
+        break;
+      case 'clear':
+        print('🗑️ Clear all...');
+        _clearMarkers();
+        break;
+    }
   }
 
   Future<void> _pickFile() async {
@@ -638,47 +671,29 @@ class _MyHomePageState extends State<MyHomePage> {
                             width: 1,
                           ),
                         ),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Icon(
-                                  Icons.graphic_eq,
-                                  color: Color(0xFF667EEA),
-                                  size: 28,
-                                ),
-                                const SizedBox(width: 12),
-                                Text(
-                                  'Audio Waveform',
-                                  style: TextStyle(
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.bold,
-                                    color: Color(0xFF2D3748),
+                        child: SingleChildScrollView(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Icon(
+                                    Icons.graphic_eq,
+                                    color: Color(0xFF667EEA),
+                                    size: 22, // Zmniejszone z 28
                                   ),
-                                ),
-                                Spacer(),
-                                if (_waveformData != null) ...[
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 12,
-                                      vertical: 6,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: Color(0xFF667EEA).withOpacity(0.1),
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Text(
-                                      '${_waveformData!.duration.toStringAsFixed(1)}s',
-                                      style: TextStyle(
-                                        color: Color(0xFF667EEA),
-                                        fontWeight: FontWeight.w600,
-                                      ),
+                                  const SizedBox(width: 12),
+                                  Text(
+                                    'Audio Waveform',
+                                    style: TextStyle(
+                                      fontSize: 18, // Zmniejszone z 24
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFF2D3748),
                                     ),
                                   ),
-                                  if (_waveformData!.markers.isNotEmpty) ...[
-                                    const SizedBox(width: 8),
+                                  Spacer(),
+                                  if (_waveformData != null) ...[
                                     Container(
                                       padding: const EdgeInsets.symmetric(
                                         horizontal: 12,
@@ -686,105 +701,139 @@ class _MyHomePageState extends State<MyHomePage> {
                                       ),
                                       decoration: BoxDecoration(
                                         color: Color(
-                                          0xFFFFD700,
-                                        ).withOpacity(0.2),
+                                          0xFF667EEA,
+                                        ).withOpacity(0.1),
                                         borderRadius: BorderRadius.circular(12),
                                       ),
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Icon(
-                                            Icons.location_on,
-                                            size: 14,
-                                            color: Color(0xFFFFD700),
-                                          ),
-                                          const SizedBox(width: 4),
-                                          Text(
-                                            '${_waveformData!.markers.length}',
-                                            style: TextStyle(
-                                              color: Colors.black87,
-                                              fontWeight: FontWeight.w600,
-                                              fontSize: 13,
-                                            ),
-                                          ),
-                                        ],
+                                      child: Text(
+                                        '${_waveformData!.duration.toStringAsFixed(1)}s',
+                                        style: TextStyle(
+                                          color: Color(0xFF667EEA),
+                                          fontWeight: FontWeight.w600,
+                                        ),
                                       ),
                                     ),
+                                    if (_waveformData!.markers.isNotEmpty) ...[
+                                      const SizedBox(width: 8),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 12,
+                                          vertical: 6,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: Color(
+                                            0xFFFFD700,
+                                          ).withOpacity(0.2),
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Icon(
+                                              Icons.location_on,
+                                              size: 14,
+                                              color: Color(0xFFFFD700),
+                                            ),
+                                            const SizedBox(width: 4),
+                                            Text(
+                                              '${_waveformData!.markers.length}',
+                                              style: TextStyle(
+                                                color: Colors.black87,
+                                                fontWeight: FontWeight.w600,
+                                                fontSize: 13,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
                                   ],
                                 ],
-                              ],
-                            ),
-                            const SizedBox(height: 20),
-                            // Waveform display
-                            Container(
-                              height: 120,
-                              decoration: BoxDecoration(
-                                color: Colors.grey.shade50,
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                  color: Colors.grey.shade200,
-                                  width: 1,
+                              ),
+                              const SizedBox(height: 16), // Zmniejszone z 20
+                              // Waveform display
+                              Container(
+                                height: 80, // Zmniejszone z 120
+                                decoration: BoxDecoration(
+                                  color: Colors.grey.shade50,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: Colors.grey.shade200,
+                                    width: 1,
+                                  ),
                                 ),
-                              ),
-                              child: _waveformData != null
-                                  ? ClipRRect(
-                                      borderRadius: BorderRadius.circular(12),
-                                      child: Padding(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 16.0,
-                                          vertical: 8.0,
-                                        ),
-                                        child: WaveformWidget(
-                                          waveformData: _waveformData!,
-                                          waveColor: Color(0xFF667EEA),
-                                          height: 104,
-                                        ),
-                                      ),
-                                    )
-                                  : Center(
-                                      child: Column(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        children: [
-                                          Icon(
-                                            Icons.audio_file_outlined,
-                                            size: 40,
-                                            color: Colors.grey.shade400,
+                                child: _waveformData != null
+                                    ? ClipRRect(
+                                        borderRadius: BorderRadius.circular(12),
+                                        child: Padding(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 16.0,
+                                            vertical: 8.0,
                                           ),
-                                          const SizedBox(height: 8),
-                                          Text(
-                                            'Upload an audio/video file to see the waveform',
-                                            style: TextStyle(
-                                              color: Colors.grey[600],
-                                              fontSize: 14,
+                                          child: WaveformWidget(
+                                            waveformData: _waveformData!,
+                                            waveColor: Color(0xFF667EEA),
+                                            height: 64, // Zmniejszone z 104
+                                          ),
+                                        ),
+                                      )
+                                    : Center(
+                                        child: Column(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          children: [
+                                            Icon(
+                                              Icons.audio_file_outlined,
+                                              size: 40,
+                                              color: Colors.grey.shade400,
                                             ),
-                                          ),
-                                        ],
+                                            const SizedBox(height: 8),
+                                            Text(
+                                              'Upload an audio/video file to see the waveform',
+                                              style: TextStyle(
+                                                color: Colors.grey[600],
+                                                fontSize: 14,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
                                       ),
-                                    ),
-                            ),
-                            if (_waveformData != null) ...[
-                              const SizedBox(height: 16),
-                              Wrap(
-                                spacing: 12,
-                                runSpacing: 8,
-                                children: [
-                                  _buildInfoChip(
-                                    Icons.insert_drive_file,
-                                    _waveformData!.fileName,
-                                  ),
-                                  _buildInfoChip(
-                                    Icons.storage,
-                                    '${(_waveformData!.fileSize / 1024 / 1024).toStringAsFixed(2)} MB',
-                                  ),
-                                  _buildInfoChip(
-                                    Icons.show_chart,
-                                    '${_waveformData!.samples} samples',
-                                  ),
-                                ],
                               ),
+                              if (_waveformData != null) ...[
+                                const SizedBox(height: 16),
+                                Wrap(
+                                  spacing: 12,
+                                  runSpacing: 8,
+                                  children: [
+                                    _buildInfoChip(
+                                      Icons.insert_drive_file,
+                                      _waveformData!.fileName,
+                                    ),
+                                    _buildInfoChip(
+                                      Icons.storage,
+                                      '${(_waveformData!.fileSize / 1024 / 1024).toStringAsFixed(2)} MB',
+                                    ),
+                                    _buildInfoChip(
+                                      Icons.show_chart,
+                                      '${_waveformData!.samples} samples',
+                                    ),
+                                  ],
+                                ),
+                              ],
+                              if (_waveformData != null) ...[
+                                const SizedBox(height: 20),
+                                // NOWY WIDGET: Przyciski akcji
+                                ActionButtonsWidget(
+                                  onButtonPressed: _handleActionButton,
+                                ),
+                              ],
+                              const SizedBox(
+                                height: 10,
+                              ), // Dużo miejsca na dole
                             ],
-                          ],
+                          ),
                         ),
                       ),
                     ),

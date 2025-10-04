@@ -1,78 +1,78 @@
-# 📊 Waveform Widget - Dokumentacja
+# 📊 Waveform Widget - Documentation
 
-## 📁 Struktura plików
+## 📁 File Structure
 
 ```
 lib/
 ├── services/
-│   └── audio_api_service.dart    # API do komunikacji z backendem + modele danych
+│   └── audio_api_service.dart    # API for backend communication + data models
 ├── widgets/
-│   └── waveform_widget.dart      # Widget wyświetlający wykres waveform
-└── main.dart                      # Główna aplikacja z UI
+│   └── waveform_widget.dart      # Widget displaying waveform graph
+└── main.dart                      # Main application with UI
 ```
 
 ---
 
-## 🎯 Funkcjonalność
+## 🎯 Functionality
 
 ### **WaveformWidget**
-Widget Flutter odpowiedzialny za wizualizację fali dźwiękowej (waveform) z plików audio/video.
+A Flutter widget responsible for visualizing audio waveforms from audio/video files.
 
-#### **Cechy:**
-- ✅ Symetryczny wykres (góra + dół)
-- ✅ Markery czasowe (żółte kropki/kreski)
-- ✅ Etykiety czasu w formacie `MM:SS`
-- ✅ Responsywny layout
-- ✅ Konfigurowalny kolor i wysokość
+#### **Features:**
+- ✅ Symmetrical waveform (top + bottom)
+- ✅ Time markers (yellow dots/lines)
+- ✅ Time labels in `MM:SS` format
+- ✅ Responsive layout
+- ✅ Configurable color and height
 
 ---
 
-## 📦 Modele danych
+## 📦 Data Models
 
 ### **TimeMarker**
 ```dart
 class TimeMarker {
-  final double timeInSeconds;   // Czas w sekundach (np. 15.5)
-  final String label;            // Etykieta (np. "00:15")
-  final Color color;             // Kolor markera (domyślnie żółty)
+  final double timeInSeconds;   // Time in seconds (e.g., 15.5)
+  final String label;            // Label (e.g., "00:15")
+  final Color color;             // Marker color (default: yellow)
 }
 ```
 
 ### **WaveformData**
 ```dart
 class WaveformData {
-  final List<int> waveform;          // Tablica amplitud (0-255)
-  final int sampleRate;              // Częstotliwość próbkowania
-  final double duration;             // Długość w sekundach
-  final int samples;                 // Liczba próbek
-  final String fileName;             // Nazwa pliku
-  final int fileSize;                // Rozmiar w bajtach
-  final List<TimeMarker> markers;    // Lista markerów czasowych
+  final List<int> waveform;          // Array of amplitudes (0-255)
+  final int sampleRate;              // Sample rate
+  final double duration;             // Duration in seconds
+  final int samples;                 // Number of samples
+  final String fileName;             // File name
+  final int fileSize;                // File size in bytes
+  final List<TimeMarker> markers;    // List of time markers
 }
 ```
 
 ---
 
-## 🎨 Użycie widgetu
+## 🎨 Widget Usage
 
-### **Podstawowe użycie:**
+### **Basic usage:**
 ```dart
 WaveformWidget(
   waveformData: yourWaveformData,
   waveColor: Color(0xFF667EEA),
-  height: 120,
+  height: 80, // Compact height
 )
 ```
 
-### **Z markerami czasowymi:**
+### **With time markers:**
 ```dart
-// Dodaj marker na 1 minutę 30 sekund
+// Add marker at 1 minute 30 seconds
 _waveformData = _waveformData!.copyWith(
   markers: [
     TimeMarker(
       timeInSeconds: 90.0,
       label: '01:30',
-      color: Color(0xFFFFD700), // Żółty
+      color: Color(0xFFFFD700), // Yellow
     ),
   ],
 );
@@ -80,42 +80,42 @@ _waveformData = _waveformData!.copyWith(
 
 ---
 
-## 🔧 Funkcje pomocnicze w main.dart
+## 🔧 Helper Functions in main.dart
 
-### **1. Dodaj marker w określonym czasie**
+### **1. Add marker at specific time**
 ```dart
 void _addTimeMarker(int minutes, int seconds) {
-  // Dodaje marker na wykresie w formacie MM:SS
-  // Przykład: _addTimeMarker(1, 30) → marker na 1:30
+  // Adds a marker on the waveform in MM:SS format
+  // Example: _addTimeMarker(1, 30) → marker at 1:30
 }
 ```
 
-### **2. Dodaj przykładowe markery automatycznie**
+### **2. Add example markers automatically**
 ```dart
 void _addExampleMarkers() {
-  // Dodaje markery co 15 sekund
-  // Przydatne do testowania
+  // Adds markers every 15 seconds
+  // Useful for testing
 }
 ```
 
-### **3. Wyczyść wszystkie markery**
+### **3. Clear all markers**
 ```dart
 void _clearMarkers() {
-  // Usuwa wszystkie markery z wykresu
+  // Removes all markers from the waveform
 }
 ```
 
 ---
 
-## 🎯 Przykłady użycia
+## 🎯 Usage Examples
 
-### **Przykład 1: Dodaj marker na określonym czasie**
+### **Example 1: Add marker at specific time**
 ```dart
-// Dodaj marker na 2:45 (2 minuty 45 sekund)
+// Add marker at 2:45 (2 minutes 45 seconds)
 _addTimeMarker(2, 45);
 ```
 
-### **Przykład 2: Dodaj wiele markerów jednocześnie**
+### **Example 2: Add multiple markers at once**
 ```dart
 setState(() {
   _waveformData = _waveformData!.copyWith(
@@ -129,137 +129,137 @@ setState(() {
 });
 ```
 
-### **Przykład 3: Markery z różnymi kolorami**
+### **Example 3: Markers with different colors**
 ```dart
 TimeMarker(
   timeInSeconds: 120.0,
   label: '02:00',
-  color: Color(0xFFFF6B6B), // Czerwony
+  color: Color(0xFFFF6B6B), // Red
 )
 
 TimeMarker(
   timeInSeconds: 180.0,
   label: '03:00',
-  color: Color(0xFF4ECDC4), // Turkusowy
+  color: Color(0xFF4ECDC4), // Turquoise
 )
 ```
 
 ---
 
-## 🎨 Customizacja
+## 🎨 Customization
 
-### **Zmień kolor waveform:**
+### **Change waveform color:**
 ```dart
 WaveformWidget(
   waveformData: _waveformData!,
-  waveColor: Color(0xFFFF6B6B), // Czerwony zamiast niebieskiego
-  height: 120,
+  waveColor: Color(0xFFFF6B6B), // Red instead of blue
+  height: 80, // Compact height
 )
 ```
 
-### **Zmień kolor markerów:**
-W pliku `waveform_widget.dart`, linia 78:
+### **Change marker color:**
+In file `waveform_widget.dart`, line 78:
 ```dart
-color: marker.color, // Używa koloru z TimeMarker
+color: marker.color, // Uses color from TimeMarker
 ```
 
-### **Zmień grubość linii waveform:**
-W pliku `waveform_widget.dart`, linia 44:
+### **Change waveform line thickness:**
+In file `waveform_widget.dart`, line 44:
 ```dart
-..strokeWidth = 2.5 // Zwiększ lub zmniejsz
+..strokeWidth = 2.5 // Increase or decrease
 ```
 
 ---
 
-## 🔍 Architektura
+## 🔍 Architecture
 
 ```
 ┌─────────────────┐
-│   main.dart     │ ← UI + logika aplikacji
-│  (użytkownik)   │
+│   main.dart     │ ← UI + application logic
+│     (user)      │
 └────────┬────────┘
          │
-         │ wywołuje
+         │ calls
          ▼
 ┌─────────────────────┐
-│ audio_api_service   │ ← Komunikacja z backendem
+│ audio_api_service   │ ← Backend communication
 │ (HTTP requests)     │
 └────────┬────────────┘
          │
-         │ zwraca WaveformData
+         │ returns WaveformData
          ▼
 ┌─────────────────────┐
-│  waveform_widget    │ ← Renderuje wykres + markery
+│  waveform_widget    │ ← Renders waveform + markers
 │  (CustomPainter)    │
 └─────────────────────┘
 ```
 
 ---
 
-## 📊 Jak działa CustomPainter
+## 📊 How CustomPainter Works
 
-1. **_drawWaveform()** - Rysuje symetryczną falę:
-   - Iteruje przez tablicę `waveform`
-   - Normalizuje amplitudy (0-255 → 0-1)
-   - Rysuje linie od środka w górę i w dół
+1. **_drawWaveform()** - Draws symmetrical wave:
+   - Iterates through `waveform` array
+   - Normalizes amplitudes (0-255 → 0-1)
+   - Draws lines from center upward and downward
 
-2. **_drawTimeMarkers()** - Rysuje markery:
-   - Oblicza pozycję X: `(timeInSeconds / duration) × width`
-   - Rysuje pionową kreskę
-   - Rysuje kropki na górze i dole
-   - Rysuje label czasu z cieniem
-
----
-
-## 🚀 Rozszerzenia możliwe w przyszłości
-
-- [ ] Interaktywne klikanie na wykres → dodaj marker
-- [ ] Edycja label markerów po kliknięciu
-- [ ] Export markerów do JSON/CSV
-- [ ] Import markerów z pliku
-- [ ] Różne style markerów (kropka, kreska, strzałka)
-- [ ] Animacja pojawiania się markerów
-- [ ] Zoom na fragment wykresu
-- [ ] Play/Pause z synchronizacją z markerami
+2. **_drawTimeMarkers()** - Draws markers:
+   - Calculates X position: `(timeInSeconds / duration) × width`
+   - Draws vertical line
+   - Draws dots at top and bottom
+   - Draws time label with shadow
 
 ---
 
-## 📝 Notatki techniczne
+## 🚀 Future Extensions
 
-### **Wydajność:**
-- Backend (Python + librosa) generuje **1000 próbek** dla każdego pliku
-- CustomPainter renderuje ~1000 linii na wykresie
-- Markery są rysowane na wierzchu, nie wpływają na wydajność waveform
+- [ ] Interactive clicking on waveform → add marker
+- [ ] Edit marker labels on click
+- [ ] Export markers to JSON/CSV
+- [ ] Import markers from file
+- [ ] Different marker styles (dot, line, arrow)
+- [ ] Animation for marker appearance
+- [ ] Zoom on waveform section
+- [ ] Play/Pause with marker synchronization
+
+---
+
+## 📝 Technical Notes
+
+### **Performance:**
+- Backend (Python + librosa) generates **1000 samples** for each file
+- CustomPainter renders ~1000 lines on the waveform
+- Markers are drawn on top, don't affect waveform performance
 
 ### **Precision:**
-- Czas markerów: precyzja do **0.01 sekundy** (double)
-- Pozycja na wykresie: piksel-perfect alignment
-- Label format: zawsze `MM:SS` (zero-padded)
+- Marker time: precision up to **0.01 second** (double)
+- Position on waveform: pixel-perfect alignment
+- Label format: always `MM:SS` (zero-padded)
 
 ---
 
-## 🐛 Debugowanie
+## 🐛 Debugging
 
-### **Problem: Markery nie widać**
-✅ Sprawdź czy `_waveformData.markers` nie jest puste
-✅ Sprawdź czy kolor markera nie jest transparentny
-✅ Sprawdź czy `timeInSeconds` < `duration`
+### **Problem: Markers not visible**
+✅ Check if `_waveformData.markers` is not empty
+✅ Check if marker color is not transparent
+✅ Check if `timeInSeconds` < `duration`
 
-### **Problem: Marker w złym miejscu**
-✅ Sprawdź formułę: `(timeInSeconds / duration) × width`
-✅ Sprawdź czy `duration` jest prawidłowe
+### **Problem: Marker in wrong position**
+✅ Check formula: `(timeInSeconds / duration) × width`
+✅ Check if `duration` is correct
 
-### **Problem: Label nie widać**
-✅ Zwiększ padding w `Container` (linia 710 w main.dart)
-✅ Sprawdź kolor cienia w `TextPainter` (linia 118 w waveform_widget.dart)
+### **Problem: Label not visible**
+✅ Increase padding in `Container` (line 710 in main.dart)
+✅ Check shadow color in `TextPainter` (line 118 in waveform_widget.dart)
 
 ---
 
-## 📞 Kontakt
+## 📞 Contact
 
-Jeśli masz pytania o implementację:
-1. Sprawdź komentarze w kodzie
-2. Przeczytaj tę dokumentację
-3. Zobacz przykłady użycia w `main.dart`
+If you have questions about implementation:
+1. Check comments in the code
+2. Read this documentation
+3. See usage examples in `main.dart`
 
-**Ostatnia aktualizacja:** 4 października 2025
+**Last updated:** October 4, 2025
