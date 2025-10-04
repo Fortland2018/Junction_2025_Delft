@@ -2,7 +2,7 @@
 from transcriber.transcribe import transcribe_file, save_srt
 
 result = transcribe_file(
-    r"C:\Users\furtu\Downloads\What are Superconducting Qubits _ QuEra.mp4",
+    r"C:\#Others\UNI\Y3\JunctionXTUDelft-5 october 2025\Madagascar.mp3",
     model_size="base",     # or "large-v3" if you have a GPU
     device="cuda",            # or "cuda"
     gap_s=0.8,               # pause threshold to split sentences

@@ -3,7 +3,7 @@ import subprocess
 import os
 
 # --- CONFIGURATION ---
-AUDIO_PATH = "C:\\Users\\furtu\\Downloads\\What are Superconducting Qubits _ QuEra.mp4"   # can also be .wav, .mp4, .mkv, etc.
+AUDIO_PATH = r"C:\#Others\UNI\Y3\JunctionXTUDelft-5 october 2025\Madagascar.mp3"   # can also be .wav, .mp4, .mkv, etc.
 MODEL_SIZE = "base"         # or 'small', 'medium', 'large-v2'
 
 # --- IF FILE IS VIDEO, EXTRACT AUDIO FIRST ---
