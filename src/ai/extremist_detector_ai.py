@@ -311,91 +311,102 @@ Return JSON:
         return self._parse_json_response(response)
     
     # STAGE 3D: OUTGROUP HOMOGENIZATION (ASYNC)
-    async def detect_outgroup_homogenization_async(self, text, linguistic_elements):
-        """Detect sweeping generalizations about groups (async version)"""
-        
-        prompt = f"""Identify language that treats an entire group as identical.
+    async def detect_outgroup_homogenization_async(self, text):
+      """Detect sweeping negative generalizations about groups (async version)"""
+      
+      prompt = f"""Identify NEGATIVE generalizations that treat an entire group as identical.
 
-Text: "{text}"
+  Text: "{text}"
 
-Look for patterns:
-1. Universal quantifiers about groups: "all X", "every X", "X always", "X never"
-2. Essentialist claims: "X are...", "X want to..."
-3. No exceptions acknowledged: absence of "some", "many", "certain"
+  Only flag hostile patterns, NOT positive/neutral statements (e.g., "X are great" should NOT be flagged).
 
-Extract each instance.
+  Look for:
+  1. Universal quantifiers + negative attributes: "all X are dangerous", "every X wants to harm us"
+  2. Essentialist claims + negative valence: "X are criminals", "X want to destroy us"
+  3. No exceptions or nuance acknowledged (absence of "some", "many", "certain")
 
-Return JSON:
-{{
-  "homogenization_patterns": [
-    {{
-      "pattern": "all_quantifier",
-      "phrase": "all Muslims want",
-      "group": "Muslims"
-    }},
-    {{
-      "pattern": "essentialist",
-      "phrase": "immigrants are criminals",
-      "group": "immigrants"
-    }}
-  ],
-  "homogenization_score": float (0-10)
-}}"""
+  Return JSON:
+  {{
+    "homogenization_patterns": [
+      {{
+        "pattern": "all_quantifier",
+        "phrase": "all Muslims want to harm us",
+        "group": "Muslims",
+        "negative_attribute": "want to harm us"
+      }}
+    ],
+    "homogenization_score": float (0-10)
+  }}
 
-        response = await self._call_llm_async(prompt)
-        return self._parse_json_response(response)
+  If no negative patterns found, return empty array and score 0."""
+
+      response = await self._call_llm_async(prompt)
+      return self._parse_json_response(response)
     
     # STAGE 4: MULTI-TASK CLASSIFICATION
     def classify_extremism_dimensions(self, all_features):
-        """Synthesize all features into final scores"""
+        """Synthesize all features into final scores using Stage 3 scores"""
         
-        prompt = f"""Given these extracted features, provide final classification scores.
+        # Extract scores directly from Stage 3 results
+        dehumanization_score = all_features.get("dehumanization", {}).get("dehumanization_score", 0.0)
+        violence_score = all_features.get("violence", {}).get("violence_advocacy_score", 0.0)
+        threat_score = all_features.get("threat", {}).get("threat_score", 0.0)
+        homogenization_score = all_features.get("homogenization", {}).get("homogenization_score", 0.0)
+        
+        # Calculate absolutism score from psycholinguistic features
+        psycho = all_features.get("psycholinguistic", {})
+        absolutism_score = psycho.get("absolutist_score", 0.0)
+        certainty_score = psycho.get("certainty_score", 0.0)
+        # Combine absolutist terms and certainty for final absolutism score
+        absolutism_final = (absolutism_score + certainty_score) / 2.0
+        
+        # Build final scores structure with evidence
+        prompt = f"""Given these extracted features and scores, provide evidence and explanation for each dimension.
 
 Extracted features:
 {json.dumps(all_features, indent=2)}
 
-For each dimension, provide:
-1. Final score (0-10)
-2. Key evidence (quote from original text)
-3. Brief explanation
+The scores have already been calculated:
+- Dehumanization: {dehumanization_score}
+- Violence Advocacy: {violence_score}
+- Absolutism: {absolutism_final}
+- Threat Inflation: {threat_score}
+- Outgroup Homogenization: {homogenization_score}
 
-Scoring guidelines:
-- 0-2: Minimal or no indicators
-- 3-4: Some indicators present
-- 5-6: Clear indicators
-- 7-8: Strong indicators
-- 9-10: Extreme indicators
+For each dimension, provide:
+1. Key evidence (quote from original text if available)
+2. Brief explanation of why this score was given
 
 Return ONLY valid JSON in this exact format:
 {{
   "dehumanization": {{
-    "score": 0.0,
-    "evidence": "specific quote from text",
+    "score": {dehumanization_score},
+    "evidence": "specific quote or description from features",
     "explanation": "brief reasoning"
   }},
   "violence_advocacy": {{
-    "score": 0.0,
-    "evidence": "specific quote from text",
+    "score": {violence_score},
+    "evidence": "specific quote or description from features",
     "explanation": "brief reasoning"
   }},
   "absolutism": {{
-    "score": 0.0,
-    "evidence": "specific quote from text",
+    "score": {absolutism_final},
+    "evidence": "specific quote or description from features",
     "explanation": "brief reasoning"
   }},
   "threat_inflation": {{
-    "score": 0.0,
-    "evidence": "specific quote from text",
+    "score": {threat_score},
+    "evidence": "specific quote or description from features",
     "explanation": "brief reasoning"
   }},
   "outgroup_homogenization": {{
-    "score": 0.0,
-    "evidence": "specific quote from text",
+    "score": {homogenization_score},
+    "evidence": "specific quote or description from features",
     "explanation": "brief reasoning"
   }}
 }}
 
-IMPORTANT: Return ONLY the JSON object, no additional text or explanation."""
+IMPORTANT: Use the EXACT scores provided above. Return ONLY the JSON object, no additional text or explanation."""
 
         return self._parse_json_response(self._call_llm(prompt))
     
@@ -513,7 +524,7 @@ Return JSON:
             self.detect_dehumanization_async(text),
             self.detect_violence_advocacy_async(text, linguistic_elements),
             self.detect_threat_inflation_async(text),
-            self.detect_outgroup_homogenization_async(text, linguistic_elements)
+            self.detect_outgroup_homogenization_async(text)
         ]
         
         # Run all tasks concurrently
@@ -527,7 +538,7 @@ Return JSON:
 if __name__ == "__main__":
     detector = HierarchicalExtremismDetector()
     
-    test_text = "ISIS members are great."
+    test_text = "They will never understand us, so we must protect ourselves."
     
     import time
     start = time.time()
