@@ -4,3 +4,4 @@ librosa==0.10.1
 numpy==1.26.2
 python-multipart==0.0.6
 soundfile==0.12.1
+setuptools>=65.5.0

@@ -886,21 +886,21 @@ if __name__ == "__main__":
     detector = HierarchicalExtremismDetector()
     
     # SINGLE TEXT ANALYSIS
-    print("\n" + "="*80)
-    print("SINGLE TEXT ANALYSIS")
-    print("="*80 + "\n")
+    # print("\n" + "="*80)
+    # print("SINGLE TEXT ANALYSIS")
+    # print("="*80 + "\n")
     
-    test_text = "Muslims are trash."
+    # test_text = "Muslims are trash."
     
-    start = time.time()
-    results = detector.analyze(test_text)
-    elapsed = time.time() - start
+    # start = time.time()
+    # results = detector.analyze(test_text)
+    # elapsed = time.time() - start
     
-    print(f"\n{'='*80}")
-    print(f"Single analysis completed in {elapsed:.2f} seconds")
-    print(f"{'='*80}\n")
-    print(json.dumps(results["scores"], indent=2))
-    print(f"\nGroup mapping: {results['group_mapping']}")
+    # print(f"\n{'='*80}")
+    # print(f"Single analysis completed in {elapsed:.2f} seconds")
+    # print(f"{'='*80}\n")
+    # print(json.dumps(results["scores"], indent=2))
+    # print(f"\nGroup mapping: {results['group_mapping']}")
     
     # BATCH ANALYSIS
     print("\n\n" + "="*80)
@@ -909,16 +909,8 @@ if __name__ == "__main__":
     
     # Example with multiple texts
     test_texts = [
+        "Hello  everyone,  this  video  is  only  allowed  to  be  used  as  test  data  for  the  Delft  Inclusive  Speech  Communication  Lab  Junction  X  Challenge.",
         "Muslims are trash.",
-        "We must eliminate all immigrants from our country.",
-        "Those people are destroying everything we hold dear.",
-        "The enemy within must be stopped at all costs.",
-        "They are like a cancer spreading through society.",
-        "He said all people should be murdered, but I disagree with that.",
-        "I think some groups are bad, but not all of them.",
-        "I am gonna kill you.",
-        "I am gonna kill you!"
-        "I am gonna kill you in minecraft!"
 
     ]
     

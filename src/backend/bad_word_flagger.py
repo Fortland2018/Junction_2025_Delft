@@ -20,23 +20,56 @@ class WordFlagger:
         Flags specific words in the given text based on the predefined bad words list.
 
         :param text: The text to analyze.
-        :return: A list of dictionaries, each containing details of a flagged word.
+        :return: A list of dictionaries, each containing details of a flagged sentence.
+                 Each entry represents ONE sentence with ALL flagged words in it.
         """
         flagged_results = []
         sentences = self._split_into_sentences(text)
 
         for sentence_index, sentence in enumerate(sentences):
             words = sentence.split()
+            flagged_words_in_sentence = []
+            
             for word_index, word in enumerate(words):
                 normalized_word = self._normalize_word(word)
                 if normalized_word in self.bad_words:
-                    flagged_results.append({
-                        "sentence_index": sentence_index,
+                    flagged_words_in_sentence.append({
                         "word_index": word_index,
                         "flagged_word": word
                     })
+            
+            # Only add entry if sentence contains flagged words
+            if flagged_words_in_sentence:
+                flagged_results.append({
+                    "sentence_index": sentence_index,
+                    "sentence_text": sentence,
+                    "flagged_words": flagged_words_in_sentence
+                })
 
         return flagged_results
+
+    def add_word(self, word: str) -> None:
+        """
+        Adds a word to the vocabulary filter.
+
+        :param word: The word to add (will be normalized).
+        """
+        normalized_word = self._normalize_word(word)
+        self.bad_words.add(normalized_word)
+        print(f"✅ Added '{normalized_word}' to vocabulary filter (total: {len(self.bad_words)} words)")
+
+    def remove_word(self, word: str) -> None:
+        """
+        Removes a word from the vocabulary filter.
+
+        :param word: The word to remove (will be normalized).
+        """
+        normalized_word = self._normalize_word(word)
+        if normalized_word in self.bad_words:
+            self.bad_words.remove(normalized_word)
+            print(f"✅ Removed '{normalized_word}' from vocabulary filter (total: {len(self.bad_words)} words)")
+        else:
+            print(f"⚠️ Word '{normalized_word}' not found in vocabulary filter")
 
     @staticmethod
     def _split_into_sentences(text: str) -> List[str]:

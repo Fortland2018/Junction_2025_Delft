@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
 class ActionButtonsWidget extends StatelessWidget {
   final Function(String) onButtonPressed;
@@ -11,48 +11,51 @@ class ActionButtonsWidget extends StatelessWidget {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 16.0),
-      child: Row(
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 8,
         children: [
           _buildActionButton(
             label: 'All',
-            color: Color(0xFFFC8181), // Czerwony
-            icon: Icons.delete_sweep,
+            color: const Color(0xFFFC8181),
+            icon: Icons.filter_list,
             onTap: () => onButtonPressed('ALL'),
           ),
-          const SizedBox(width: 8),
+          _buildActionButton(
+            label: 'Vocabulary Filter',
+            color: const Color(0xFFED8936),
+            icon: Icons.flag,
+            onTap: () => onButtonPressed('Vocabulary Filter'),
+          ),
           _buildActionButton(
             label: 'Dehumanization',
-            color: Color(0xFF667EEA), // Niebieski
-            icon: Icons.download,
+            color: const Color(0xFF667EEA),
+            icon: Icons.person_off,
             onTap: () => onButtonPressed('Dehumanization'),
           ),
-          const SizedBox(width: 8),
           _buildActionButton(
             label: 'Violence Advocacy',
-            color: Color(0xFF48BB78), // Zielony
-            icon: Icons.save,
-            onTap: () => onButtonPressed('Violence_advocacy'),
+            color: const Color(0xFF48BB78),
+            icon: Icons.gavel,
+            onTap: () => onButtonPressed('Violence Advocacy'),
           ),
-          const SizedBox(width: 8),
           _buildActionButton(
             label: 'Absolutism',
-            color: Color(0xFF9F7AEA), // Fioletowy
-            icon: Icons.share,
+            color: const Color(0xFF9F7AEA),
+            icon: Icons.stop_circle,
             onTap: () => onButtonPressed('Absolutism'),
           ),
-          const SizedBox(width: 8),
           _buildActionButton(
             label: 'Threat Inflation',
-            color: Color(0xFFED8936), // Pomarańczowy
-            icon: Icons.settings,
-            onTap: () => onButtonPressed('Threat_inflation'),
+            color: const Color(0xFFECC94B),
+            icon: Icons.trending_up,
+            onTap: () => onButtonPressed('Threat Inflation'),
           ),
-          const SizedBox(width: 8),
           _buildActionButton(
             label: 'Outgroup Homogenization',
-            color: Color(0xFF38B2AC), // Turkusowy
-            icon: Icons.group,
-            onTap: () => onButtonPressed('Outgroup_homogenization'),
+            color: const Color(0xFF38B2AC),
+            icon: Icons.group_remove,
+            onTap: () => onButtonPressed('Outgroup Homogenization'),
           ),
         ],
       ),
@@ -65,29 +68,37 @@ class ActionButtonsWidget extends StatelessWidget {
     required IconData icon,
     required VoidCallback onTap,
   }) {
-    return Expanded(
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
-        child: Container(
-          height: 44, // Płaski przycisk
-          padding: const EdgeInsets.symmetric(horizontal: 8),
-          decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: color.withOpacity(0.3), width: 1),
-          ),
-          child: Center(
-            child: Text(
-              label,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: color,
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        height: 44,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        constraints: const BoxConstraints(minWidth: 140),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: color.withOpacity(0.3), width: 1),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 16, color: color),
+            const SizedBox(width: 6),
+            Flexible(
+              child: Text(
+                label,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: color,
+                ),
+                overflow: TextOverflow.ellipsis,
               ),
             ),
-          ),
+          ],
         ),
       ),
     );
