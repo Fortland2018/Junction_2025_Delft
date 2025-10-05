@@ -3,26 +3,35 @@ import 'package:flutter/material.dart';
 class TimestampEntry {
   final double timeInSeconds;
   final String category;
+  final List<String> categories;
   final String text;
   final Color color;
 
   TimestampEntry({
     required this.timeInSeconds,
     required this.category,
+    List<String>? categories,
     required this.text,
     required this.color,
-  });
+  }) : categories = categories ?? [category];
 
   String get formattedTime {
     final minutes = (timeInSeconds / 60).floor();
     final seconds = (timeInSeconds % 60).floor();
     return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
   }
+  
+  bool hasCategory(String cat) {
+    return categories.contains(cat);
+  }
 
   factory TimestampEntry.fromJson(Map<String, dynamic> json) {
     return TimestampEntry(
       timeInSeconds: json['timeInSeconds'].toDouble(),
       category: json['category'],
+      categories: json['categories'] != null 
+          ? List<String>.from(json['categories'])
+          : [json['category']],
       text: json['text'],
       color: Color(int.parse(json['color'].replaceFirst('#', '0xFF'))),
     );
@@ -32,6 +41,7 @@ class TimestampEntry {
     return {
       'timeInSeconds': timeInSeconds,
       'category': category,
+      'categories': categories,
       'text': text,
       'color': '#${color.value.toRadixString(16).substring(2)}',
     };
